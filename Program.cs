@@ -1,7 +1,6 @@
 ﻿using HtmlAgilityPack;
 using OpenQA.Selenium.Chrome;
 using System.Text.Json;
-using WebScraper.Data;
 
 namespace WebScraper
 {
@@ -21,54 +20,6 @@ namespace WebScraper
     public string? Port { get; set; }
     public string? Country { get; set; }
     public string? Protocol { get; set; }
-  }
-
-  static class DataSaver
-  {
-    public static void ToJSON(string scrapId, string content)
-    {
-      string fileName = string.Format(@"{0}.json", scrapId);
-      string projectDirectory = AppDomain.CurrentDomain.BaseDirectory;
-      string filePath = Path.Combine(projectDirectory, "data", fileName);
-
-      _ = Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-
-      try
-      {
-        File.WriteAllText(filePath, content);
-      }
-      catch (IOException ex)
-      {
-        Console.WriteLine("Error saving file: {0}", ex.Message);
-      }
-    }
-
-    public static void ToHTML(string scrapId, int pageNumber, string content)
-    {
-      string fileName = string.Format(@"page_{0}.html", pageNumber);
-      string projectDirectory = AppDomain.CurrentDomain.BaseDirectory;
-      string filePath = Path.Combine(projectDirectory, "data", scrapId, fileName);
-
-      _ = Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-
-      try
-      {
-        using StreamWriter writer = new(filePath);
-        writer.Write(content.ToString());
-      }
-      catch (IOException ex)
-      {
-        Console.WriteLine("Error saving file: {0}", ex.Message);
-      }
-    }
-
-    public static void ToDatabase(ScraperData data)
-    {
-      using DataContext dataContext = new();
-      dataContext.Scraps.Add(data);
-
-      dataContext.SaveChanges();
-    }
   }
 
   public class Counter
@@ -164,9 +115,9 @@ namespace WebScraper
       string jsonData = JsonSerializer.Serialize(ProxyServers);
 
       ScraperData scraperData = new() { DataInicio = beginDate, DataFim = endDate, Páginas = pagesCount.GetCount(), Linhas = ProxyServers.Count, Json = jsonData };
-      DataSaver.ToDatabase(scraperData);
+      SaveData.ToDatabase(scraperData);
 
-      DataSaver.ToJSON(scrapId, jsonData);
+      SaveData.ToJSON(scrapId, jsonData);
     }
 
     private static void Worker(object obj)
@@ -180,7 +131,7 @@ namespace WebScraper
 
       _pool.WaitOne();
 
-      DataSaver.ToHTML(scrapId, pagesCount, htmlContent);
+      SaveData.ToHTML(scrapId, pagesCount, htmlContent);
       ScrapPage(proxyHTMLElements, ProxyServers);
 
       _pool.Release();
